@@ -15,8 +15,8 @@ export default async function (req, res) {
     return;
   }
 
-  const animal = req.body.animal || '';
-  if (animal.trim().length === 0) {
+  const param = req.body.animal || req.body.horoscope || '';
+  if (param.trim().length === 0) {
     res.status(400).json({
       error: {
         message: "Please enter a valid animal",
@@ -25,12 +25,19 @@ export default async function (req, res) {
     return;
   }
 
+  const prompt = req.body.horoscope && req.body.horoscope !== ''
+    ? generateNamesPrompt(param, req.body.isBoy)
+    : generatePrompt(param);
+
   try {
     const completion = await openai.createCompletion({
       model: "text-davinci-003",
-      prompt: generatePrompt(animal),
+      prompt: prompt,
       temperature: 0.6,
     });
+    console.log("completion", completion);
+    console.log("data", completion.data);
+    console.log("choices", completion.data.choices);
     res.status(200).json({ result: completion.data.choices[0].text });
   } catch(error) {
     // Consider adjusting the error handling logic for your use case
@@ -58,5 +65,18 @@ Names: Captain Sharpclaw, Agent Fluffball, The Incredible Feline
 Animal: Dog
 Names: Ruff the Protector, Wonder Canine, Sir Barks-a-Lot
 Animal: ${capitalizedAnimal}
+Names:`;
+}
+
+function generateNamesPrompt(horoscope, isBoy = true) {
+  const capitalizedNames =
+  horoscope[0].toUpperCase() + horoscope.slice(1).toLowerCase();
+  return `Suggest three names for a ${isBoy ? 'boy': 'girl'} who is born in ${horoscope} Zodiac sign.
+
+Horoscope: Aries
+Names: ${isBoy ? 'Adam, Andre, Chelsey': 'Aastha, Azura, Chaya'}
+Animal: Taurus
+Names: ${isBoy ? 'Balavir, Bali, Vijay': 'Ekata, Inaaya, Vaibhavi'}
+Animal: ${capitalizedNames}
 Names:`;
 }
